@@ -483,12 +483,32 @@ const (
 	StrSetPglenInch
 )
 
+type BoolEx struct {
+	Name  string
+	Value bool
+}
+
+type NumberEx struct {
+	Name  string
+	Value int
+}
+
+type StringEx struct {
+	Name  string
+	Value string
+}
+
 // TermInfo contains all data describing a compiled terminfo entry.
 type TermInfo struct {
-	Names     []string
-	BoolFlags []bool
-	Numbers   []int
-	Strings   []string
+	Names []string
+
+	Bools   []bool   // Boolean capabilities
+	Numbers []int    // Numeric capabilities
+	Strings []string // String capabilities
+
+	ExBools   []BoolEx   // Extended boolean capabilities
+	ExNumbers []NumberEx // Extended numeric capabilities
+	ExStrings []StringEx // Extended string capabilities
 
 	numSize int
 }
@@ -513,6 +533,14 @@ type header struct {
 	StrSize   int16 // size of the string table in bytes
 }
 
+type headerEx struct {
+	BoolCount int16 // number of extended boolean values
+	NumCount  int16 // number of extended numeric values
+	StrCount  int16 // number of extended string values
+	StrSize   int16 // size of the extended string table in bytes
+	StrLimit  int16 // last offset of extended string table in bytes
+}
+
 // Read loads a compiled terminfo file from the reader.
 func Read(r io.Reader) (*TermInfo, error) {
 	var h header
@@ -521,22 +549,17 @@ func Read(r io.Reader) (*TermInfo, error) {
 		return nil, err
 	}
 
-	ti := &TermInfo{}
-
-	switch h.Magic {
-	case magic1:
-		ti.numSize = 2
-	case magic2:
-		ti.numSize = 4
-	default:
+	if h.Magic != magic1 && h.Magic != magic2 {
 		return nil, ErrInvalidFormat
 	}
 
-	size := binary.Size(h) + int(h.NamesSize) + int(h.BoolCount) +
-		int(h.NumCount)*ti.numSize + int(h.StrCount*2) + int(h.StrSize)
+	size := h.dataSize()
 	if size > maxSize {
 		return nil, ErrInvalidFormat
 	}
+
+	ti := &TermInfo{}
+	ti.numSize = h.numSize()
 
 	b := make([]byte, h.NamesSize)
 	_, err = io.ReadFull(r, b)
@@ -548,7 +571,7 @@ func Read(r io.Reader) (*TermInfo, error) {
 	}
 	ti.Names = strings.Split(string(b[:len(b)-1]), "|")
 
-	ti.BoolFlags, err = readBools(r, int(h.BoolCount))
+	ti.Bools, err = readBools(r, int(h.BoolCount))
 	if err != nil {
 		return nil, err
 	}
@@ -568,30 +591,132 @@ func Read(r io.Reader) (*TermInfo, error) {
 		return nil, err
 	}
 
-	strTable := make([]byte, h.StrSize)
-	_, err = io.ReadFull(r, strTable)
+	strBytes := make([]byte, h.StrSize)
+	_, err = io.ReadFull(r, strBytes)
 	if err != nil {
 		return nil, err
 	}
 
+	strings := string(strBytes)
 	ti.Strings = make([]string, h.StrCount)
 	for i, o := range strOffsets {
 		if o >= 0 && o < int(h.StrSize) {
-			ti.Strings[i] = getString(strTable, o)
+			ti.Strings[i] = getString(strings, o)
 		}
 	}
+
+	err = alignWord(r, int16(size))
+	if err != nil {
+		return ti, nil
+	}
+
+	var h2 headerEx
+	err = binary.Read(r, binary.LittleEndian, &h2)
+	if err == io.EOF || err == io.ErrUnexpectedEOF {
+		return ti, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	var exBools []bool
+	exBools, err = readBools(r, int(h2.BoolCount))
+	if err != nil {
+		return nil, err
+	}
+
+	err = alignWord(r, h2.BoolCount)
+	if err != nil {
+		return nil, err
+	}
+
+	var exNumbers []int
+	exNumbers, err = readNumbers(r, int(h2.NumCount), ti.numSize)
+	if err != nil {
+		return nil, err
+	}
+
+	strOffsets, err = readNumbers(r, int(h2.StrCount), 2)
+	if err != nil {
+		return nil, err
+	}
+
+	nameCount := int(h2.BoolCount + h2.NumCount + h2.StrCount)
+	var nameOffsets []int
+	nameOffsets, err = readNumbers(r, nameCount, 2)
+	if err != nil {
+		return nil, err
+	}
+
+	strBytes = make([]byte, h2.StrLimit)
+	_, err = io.ReadFull(r, strBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	strings = string(strBytes)
+
+	ti.ExStrings = make([]StringEx, h2.StrCount)
+	for i, o := range strOffsets {
+		if o >= 0 && o < int(h2.StrLimit) {
+			ti.ExStrings[i].Value = getString(strings, o)
+		}
+	}
+
+	ti.ExBools = make([]BoolEx, h2.BoolCount)
+	for i, v := range exBools {
+		ti.ExBools[i].Name = getString(strings, nameOffsets[0])
+		ti.ExBools[i].Value = v
+		nameOffsets = nameOffsets[1:]
+	}
+
+	ti.ExNumbers = make([]NumberEx, h2.NumCount)
+	for i, v := range exNumbers {
+		ti.ExNumbers[i].Name = getString(strings, nameOffsets[0])
+		ti.ExNumbers[i].Value = v
+		nameOffsets = nameOffsets[1:]
+	}
+
+	ti.ExStrings = make([]StringEx, h2.StrCount)
+
+	_ = exBools
+	_ = exNumbers
+	_ = nameOffsets
+	_ = strings
 
 	return ti, nil
 }
 
-func getString(table []byte, offset int) string {
+func (h *header) numSize() int {
+	if h.Magic == magic2 {
+		return 4
+	}
+	return 2
+}
+
+func (h *header) dataSize() int {
+	adj := 0
+	if ((h.NamesSize + h.BoolCount) & 1) == 1 {
+		adj = 1
+	}
+
+	return 2*6 +
+		int(h.NamesSize) +
+		int(h.BoolCount) +
+		adj +
+		int(h.NumCount)*h.numSize() +
+		int(h.StrCount)*2 +
+		int(h.StrSize)
+}
+
+func getString(strings string, offset int) string {
 	end := offset
-	for ; end < len(table); end++ {
-		if table[end] == 0 {
+	for ; end < len(strings); end++ {
+		if strings[end] == 0 {
 			break
 		}
 	}
-	return string(table[offset:end])
+	return strings[offset:end]
 }
 
 func alignWord(r io.Reader, offset int16) error {
