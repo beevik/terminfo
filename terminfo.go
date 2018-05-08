@@ -657,32 +657,41 @@ func Read(r io.Reader) (*TermInfo, error) {
 	strings = string(strBytes)
 
 	ti.ExStrings = make([]StringEx, h2.StrCount)
+	namesOffset := 0
 	for i, o := range strOffsets {
 		if o >= 0 && o < int(h2.StrLimit) {
 			ti.ExStrings[i].Value = getString(strings, o)
+			namesOffset = max(namesOffset, o)
 		}
 	}
 
+	// Find offset where extended cap names begin.
+	for ; namesOffset < len(strings); namesOffset++ {
+		if strings[namesOffset] == 0 {
+			namesOffset++
+			break
+		}
+	}
+	names := strings[namesOffset:]
+
 	ti.ExBools = make([]BoolEx, h2.BoolCount)
 	for i, v := range exBools {
-		ti.ExBools[i].Name = getString(strings, nameOffsets[0])
+		ti.ExBools[i].Name = getString(names, nameOffsets[0])
 		ti.ExBools[i].Value = v
 		nameOffsets = nameOffsets[1:]
 	}
 
 	ti.ExNumbers = make([]NumberEx, h2.NumCount)
 	for i, v := range exNumbers {
-		ti.ExNumbers[i].Name = getString(strings, nameOffsets[0])
+		ti.ExNumbers[i].Name = getString(names, nameOffsets[0])
 		ti.ExNumbers[i].Value = v
 		nameOffsets = nameOffsets[1:]
 	}
 
-	ti.ExStrings = make([]StringEx, h2.StrCount)
-
-	_ = exBools
-	_ = exNumbers
-	_ = nameOffsets
-	_ = strings
+	for i := range ti.ExStrings {
+		ti.ExStrings[i].Name = getString(names, nameOffsets[0])
+		nameOffsets = nameOffsets[1:]
+	}
 
 	return ti, nil
 }
@@ -772,4 +781,11 @@ func readNumbers(r io.Reader, n, sz int) ([]int, error) {
 	}
 
 	return nums, nil
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
