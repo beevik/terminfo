@@ -7,510 +7,39 @@ import (
 	"strings"
 )
 
-// Boolean capabilities, used to index into the TermInfo.BoolFlags slice.
-const (
-	BoolAutoLeftMargin = iota
-	BoolAutoRightMargin
-	BoolNoEscCtrlC
-	BoolEOLStandoutGlitch
-	BoolEatNewlineGlitch
-	BoolEraseOverstrike
-	BoolGenericType
-	BoolHardCopy
-	BoolHasMetaKey
-	BoolHasStatusLine
-	BoolInsertNullGlitch
-	BoolMemoryAbove
-	BoolMemoryBelow
-	BoolMoveInsertMode
-	BoolMoveStandoutMode
-	BoolOverstrike
-	BoolStatusLineEscOk
-	BoolDestTabsMagicSMSO
-	BoolTildeGlitch
-	BoolTransparentUnderline
-	BoolXonXoff
-	BoolNeedsXonXoff
-	BoolPrtrSilent
-	BoolHardCursor
-	BoolNonRevRmcup
-	BoolNoPadChar
-	BoolNonDestScrollRegion
-	BoolCanChange
-	BoolBackColorErase
-	BoolHueLightnessSaturation
-	BoolColAddrGlitch
-	BoolCRCancelsMicroMode
-	BoolHasPrintWheel
-	BoolRowAddrGlitch
-	BoolSemiAutoRightMargin
-	BoolCPIChangesRes
-	BoolLPIChangesRes
-)
-
-// Number capabilities, used to index into the TermInfo.Numbers slice.
-const (
-	NumColumns = iota
-	NumInitTabs
-	NumLines
-	NumLinesOfMemory
-	NumMagicCookieGlitch
-	NumPaddingBaudRate
-	NumVirtualTerminal
-	NumWidthStatusLine
-	NumNumLabels
-	NumLabelHeight
-	NumLabelWidth
-	NumMaxAttributes
-	NumMaximumWindows
-	NumMaxColors
-	NumMaxPairs
-	NumNoColorVideo
-	NumBufferCapacity
-	NumDotVertSpacing
-	NumDotHorzSpacing
-	NumMaxMicroaddress
-	NumMaxMicroJump
-	NumMicroColSize
-	NumMicroLineSize
-	NumNumberOfPins
-	NumOutputResChar
-	NumOutputResLine
-	NumOutputResHorzInch
-	NumOutputResVertInch
-	NumPrintRate
-	NumWideCharSize
-	NumButtons
-	NumBitImageEntwining
-	NumBitImageType
-)
-
-// String capabilities, used to index into the TermInfo.Strings slice.
-const (
-	StrBackTab = iota
-	StrBell
-	StrCarriageReturn
-	StrChangeScrollRegion
-	StrClearAllTabs
-	StrClearScreen
-	StrClrEol
-	StrClrEos
-	StrColumnAddress
-	StrCommandCharacter
-	StrCursorAddress
-	StrCursorDown
-	StrCursorHome
-	StrCursorInvisible
-	StrCursorLeft
-	StrCursorMemAddress
-	StrCursorNormal
-	StrCursorRight
-	StrCursorToLl
-	StrCursorUp
-	StrCursorVisible
-	StrDeleteCharacter
-	StrDeleteLine
-	StrDisStatusLine
-	StrDownHalfLine
-	StrEnterAltCharsetMode
-	StrEnterBlinkMode
-	StrEnterBoldMode
-	StrEnterCaMode
-	StrEnterDeleteMode
-	StrEnterDimMode
-	StrEnterInsertMode
-	StrEnterSecureMode
-	StrEnterProtectedMode
-	StrEnterReverseMode
-	StrEnterStandoutMode
-	StrEnterUnderlineMode
-	StrEraseChars
-	StrExitAltCharsetMode
-	StrExitAttributeMode
-	StrExitCaMode
-	StrExitDeleteMode
-	StrExitInsertMode
-	StrExitStandoutMode
-	StrExitUnderlineMode
-	StrFlashScreen
-	StrFormFeed
-	StrFromStatusLine
-	StrInit1string
-	StrInit2string
-	StrInit3string
-	StrInitFile
-	StrInsertCharacter
-	StrInsertLine
-	StrInsertPadding
-	StrKeyBackspace
-	StrKeyCatab
-	StrKeyClear
-	StrKeyCtab
-	StrKeyDc
-	StrKeyDl
-	StrKeyDown
-	StrKeyEic
-	StrKeyEol
-	StrKeyEos
-	StrKeyF0
-	StrKeyF1
-	StrKeyF10
-	StrKeyF2
-	StrKeyF3
-	StrKeyF4
-	StrKeyF5
-	StrKeyF6
-	StrKeyF7
-	StrKeyF8
-	StrKeyF9
-	StrKeyHome
-	StrKeyIc
-	StrKeyIl
-	StrKeyLeft
-	StrKeyLl
-	StrKeyNpage
-	StrKeyPpage
-	StrKeyRight
-	StrKeySf
-	StrKeySr
-	StrKeyStab
-	StrKeyUp
-	StrKeypadLocal
-	StrKeypadXmit
-	StrLabF0
-	StrLabF1
-	StrLabF10
-	StrLabF2
-	StrLabF3
-	StrLabF4
-	StrLabF5
-	StrLabF6
-	StrLabF7
-	StrLabF8
-	StrLabF9
-	StrMetaOff
-	StrMetaOn
-	StrNewline
-	StrPadChar
-	StrParmDch
-	StrParmDeleteLine
-	StrParmDownCursor
-	StrParmIch
-	StrParmIndex
-	StrParmInsertLine
-	StrParmLeftCursor
-	StrParmRightCursor
-	StrParmRindex
-	StrParmUpCursor
-	StrPkeyKey
-	StrPkeyLocal
-	StrPkeyXmit
-	StrPrintScreen
-	StrPrtrOff
-	StrPrtrOn
-	StrRepeatChar
-	StrReset1string
-	StrReset2string
-	StrReset3string
-	StrResetFile
-	StrRestoreCursor
-	StrRowAddress
-	StrSaveCursor
-	StrScrollForward
-	StrScrollReverse
-	StrSetAttributes
-	StrSetTab
-	StrSetWindow
-	StrTab
-	StrToStatusLine
-	StrUnderlineChar
-	StrUpHalfLine
-	StrInitProg
-	StrKeyA1
-	StrKeyA3
-	StrKeyB2
-	StrKeyC1
-	StrKeyC3
-	StrPrtrNon
-	StrCharPadding
-	StrAcsChars
-	StrPlabNorm
-	StrKeyBtab
-	StrEnterXonMode
-	StrExitXonMode
-	StrEnterAmMode
-	StrExitAmMode
-	StrXonCharacter
-	StrXoffCharacter
-	StrEnaAcs
-	StrLabelOn
-	StrLabelOff
-	StrKeyBeg
-	StrKeyCancel
-	StrKeyClose
-	StrKeyCommand
-	StrKeyCopy
-	StrKeyCreate
-	StrKeyEnd
-	StrKeyEnter
-	StrKeyExit
-	StrKeyFind
-	StrKeyHelp
-	StrKeyMark
-	StrKeyMessage
-	StrKeyMove
-	StrKeyNext
-	StrKeyOpen
-	StrKeyOptions
-	StrKeyPrevious
-	StrKeyPrint
-	StrKeyRedo
-	StrKeyReference
-	StrKeyRefresh
-	StrKeyReplace
-	StrKeyRestart
-	StrKeyResume
-	StrKeySave
-	StrKeySuspend
-	StrKeyUndo
-	StrKeySbeg
-	StrKeyScancel
-	StrKeyScommand
-	StrKeyScopy
-	StrKeyScreate
-	StrKeySdc
-	StrKeySdl
-	StrKeySelect
-	StrKeySend
-	StrKeySeol
-	StrKeySexit
-	StrKeySfind
-	StrKeyShelp
-	StrKeyShome
-	StrKeySic
-	StrKeySleft
-	StrKeySmessage
-	StrKeySmove
-	StrKeySnext
-	StrKeySoptions
-	StrKeySprevious
-	StrKeySprint
-	StrKeySredo
-	StrKeySreplace
-	StrKeySright
-	StrKeySrsume
-	StrKeySsave
-	StrKeySsuspend
-	StrKeySundo
-	StrReqForInput
-	StrKeyF11
-	StrKeyF12
-	StrKeyF13
-	StrKeyF14
-	StrKeyF15
-	StrKeyF16
-	StrKeyF17
-	StrKeyF18
-	StrKeyF19
-	StrKeyF20
-	StrKeyF21
-	StrKeyF22
-	StrKeyF23
-	StrKeyF24
-	StrKeyF25
-	StrKeyF26
-	StrKeyF27
-	StrKeyF28
-	StrKeyF29
-	StrKeyF30
-	StrKeyF31
-	StrKeyF32
-	StrKeyF33
-	StrKeyF34
-	StrKeyF35
-	StrKeyF36
-	StrKeyF37
-	StrKeyF38
-	StrKeyF39
-	StrKeyF40
-	StrKeyF41
-	StrKeyF42
-	StrKeyF43
-	StrKeyF44
-	StrKeyF45
-	StrKeyF46
-	StrKeyF47
-	StrKeyF48
-	StrKeyF49
-	StrKeyF50
-	StrKeyF51
-	StrKeyF52
-	StrKeyF53
-	StrKeyF54
-	StrKeyF55
-	StrKeyF56
-	StrKeyF57
-	StrKeyF58
-	StrKeyF59
-	StrKeyF60
-	StrKeyF61
-	StrKeyF62
-	StrKeyF63
-	StrClrBol
-	StrClearMargins
-	StrSetLeftMargin
-	StrSetRightMargin
-	StrLabelFormat
-	StrSetClock
-	StrDisplayClock
-	StrRemoveClock
-	StrCreateWindow
-	StrGotoWindow
-	StrHangup
-	StrDialPhone
-	StrQuickDial
-	StrTone
-	StrPulse
-	StrFlashHook
-	StrFixedPause
-	StrWaitTone
-	StrUser0
-	StrUser1
-	StrUser2
-	StrUser3
-	StrUser4
-	StrUser5
-	StrUser6
-	StrUser7
-	StrUser8
-	StrUser9
-	StrOrigPair
-	StrOrigColors
-	StrInitializeColor
-	StrInitializePair
-	StrSetColorPair
-	StrSetForeground
-	StrSetBackground
-	StrChangeCharPitch
-	StrChangeLinePitch
-	StrChangeResHorz
-	StrChangeResVert
-	StrDefineChar
-	StrEnterDoublewideMode
-	StrEnterDraftQuality
-	StrEnterItalicsMode
-	StrEnterLeftwardMode
-	StrEnterMicroMode
-	StrEnterNearLetterQuality
-	StrEnterNormalQuality
-	StrEnterShadowMode
-	StrEnterSubscriptMode
-	StrEnterSuperscriptMode
-	StrEnterUpwardMode
-	StrExitDoublewideMode
-	StrExitItalicsMode
-	StrExitLeftwardMode
-	StrExitMicroMode
-	StrExitShadowMode
-	StrExitSubscriptMode
-	StrExitSuperscriptMode
-	StrExitUpwardMode
-	StrMicroColumnAddress
-	StrMicroDown
-	StrMicroLeft
-	StrMicroRight
-	StrMicroRowAddress
-	StrMicroUp
-	StrOrderOfPins
-	StrParmDownMicro
-	StrParmLeftMicro
-	StrParmRightMicro
-	StrParmUpMicro
-	StrSelectCharSet
-	StrSetBottomMargin
-	StrSetBottomMarginParm
-	StrSetLeftMarginParm
-	StrSetRightMarginParm
-	StrSetTopMargin
-	StrSetTopMarginParm
-	StrStartBitImage
-	StrStartCharSetDef
-	StrStopBitImage
-	StrStopCharSetDef
-	StrSubscriptCharacters
-	StrSuperscriptCharacters
-	StrTheseCauseCr
-	StrZeroMotion
-	StrCharSetNames
-	StrKeyMouse
-	StrMouseInfo
-	StrReqMousePos
-	StrGetMouse
-	StrSetAForeground
-	StrSetABackground
-	StrPkeyPlab
-	StrDeviceType
-	StrCodeSetInit
-	StrSet0DesSeq
-	StrSet1DesSeq
-	StrSet2DesSeq
-	StrSet3DesSeq
-	StrSetLrMargin
-	StrSetTbMargin
-	StrBitImageRepeat
-	StrBitImageNewline
-	StrBitImageCarriageReturn
-	StrColorNames
-	StrDefineBitImageRegion
-	StrEndBitImageRegion
-	StrSetColorBand
-	StrSetPageLength
-	StrDisplayPcChar
-	StrEnterPcCharsetMode
-	StrExitPcCharsetMode
-	StrEnterScancodeMode
-	StrExitScancodeMode
-	StrPcTermOptions
-	StrScancodeEscape
-	StrAltScancodeEsc
-	StrEnterHorizontalHlMode
-	StrEnterLeftHlMode
-	StrEnterLowHlMode
-	StrEnterRightHlMode
-	StrEnterTopHlMode
-	StrEnterVerticalHlMode
-	StrSetAAttributes
-	StrSetPglenInch
-)
-
-type BoolEx struct {
-	Name  string
-	Value bool
-}
-
-type NumberEx struct {
-	Name  string
-	Value int
-}
-
-type StringEx struct {
-	Name  string
-	Value string
-}
-
 // TermInfo contains all data describing a compiled terminfo entry.
 type TermInfo struct {
-	Names []string
+	names      []string
+	boolCaps   map[string]bool
+	numCaps    map[string]int
+	stringCaps map[string]string
+	numSize    int
+}
 
-	Bools   []bool   // Boolean capabilities
-	Numbers []int    // Numeric capabilities
-	Strings []string // String capabilities
+// Names returns a slice containing all the names of the TermInfo.
+func (ti *TermInfo) Names() []string {
+	return ti.names
+}
 
-	ExBools   []BoolEx   // Extended boolean capabilities
-	ExNumbers []NumberEx // Extended numeric capabilities
-	ExStrings []StringEx // Extended string capabilities
+// GetBoolCap returns a named boolean capability. You should pass the short
+// variable name of the capability.
+func (ti *TermInfo) GetBoolCap(name string) (v, ok bool) {
+	v, ok = ti.boolCaps[name]
+	return v, ok
+}
 
-	numSize int
+// GetNumberCap returns the value of a named numeric capabilitty. You should
+// pass the short name of the capability.
+func (ti *TermInfo) GetNumberCap(name string) (v int, ok bool) {
+	v, ok = ti.numCaps[name]
+	return v, ok
+}
+
+// GetStringCap returns the value of a named string capability. You should
+// pass the short name of the capability.
+func (ti *TermInfo) GetStringCap(name string) (v string, ok bool) {
+	v, ok = ti.stringCaps[name]
+	return v, ok
 }
 
 const (
@@ -569,20 +98,34 @@ func Read(r io.Reader) (*TermInfo, error) {
 	if h.NamesSize > 0 && b[len(b)-1] != 0 {
 		return nil, ErrInvalidFormat
 	}
-	ti.Names = strings.Split(string(b[:len(b)-1]), "|")
+	ti.names = strings.Split(string(b[:len(b)-1]), "|")
 
-	ti.Bools, err = readBools(r, int(h.BoolCount))
+	var bools []bool
+	bools, err = readBools(r, int(h.BoolCount))
 	if err != nil {
 		return nil, err
+	}
+	ti.boolCaps = make(map[string]bool)
+	for i, v := range bools {
+		n := boolCapNames[i]
+		ti.boolCaps[n] = v
 	}
 
 	if err = alignWord(r, h.NamesSize+h.BoolCount); err != nil {
 		return nil, err
 	}
 
-	ti.Numbers, err = readNumbers(r, int(h.NumCount), ti.numSize)
+	var nums []int
+	nums, err = readNumbers(r, int(h.NumCount), ti.numSize)
 	if err != nil {
 		return nil, err
+	}
+	ti.numCaps = make(map[string]int)
+	for i, v := range nums {
+		if v != -1 {
+			n := numCapNames[i]
+			ti.numCaps[n] = v
+		}
 	}
 
 	var strOffsets []int
@@ -598,10 +141,12 @@ func Read(r io.Reader) (*TermInfo, error) {
 	}
 
 	strings := string(strBytes)
-	ti.Strings = make([]string, h.StrCount)
+	ti.stringCaps = make(map[string]string)
 	for i, o := range strOffsets {
 		if o >= 0 && o < int(h.StrSize) {
-			ti.Strings[i] = getString(strings, o)
+			n := strCapNames[i]
+			v := getString(strings, o)
+			ti.stringCaps[n] = v
 		}
 	}
 
@@ -653,14 +198,13 @@ func Read(r io.Reader) (*TermInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	strings = string(strBytes)
 
-	ti.ExStrings = make([]StringEx, h2.StrCount)
+	tmpStrings := make([]string, h2.StrCount)
 	namesOffset := 0
 	for i, o := range strOffsets {
 		if o >= 0 && o < int(h2.StrLimit) {
-			ti.ExStrings[i].Value = getString(strings, o)
+			tmpStrings[i] = getString(strings, o)
 			namesOffset = max(namesOffset, o)
 		}
 	}
@@ -674,22 +218,23 @@ func Read(r io.Reader) (*TermInfo, error) {
 	}
 	names := strings[namesOffset:]
 
-	ti.ExBools = make([]BoolEx, h2.BoolCount)
-	for i, v := range exBools {
-		ti.ExBools[i].Name = getString(names, nameOffsets[0])
-		ti.ExBools[i].Value = v
+	for _, v := range exBools {
+		n := getString(names, nameOffsets[0])
+		ti.boolCaps[n] = v
 		nameOffsets = nameOffsets[1:]
 	}
 
-	ti.ExNumbers = make([]NumberEx, h2.NumCount)
-	for i, v := range exNumbers {
-		ti.ExNumbers[i].Name = getString(names, nameOffsets[0])
-		ti.ExNumbers[i].Value = v
+	for _, v := range exNumbers {
+		n := getString(names, nameOffsets[0])
+		ti.numCaps[n] = v
 		nameOffsets = nameOffsets[1:]
 	}
 
-	for i := range ti.ExStrings {
-		ti.ExStrings[i].Name = getString(names, nameOffsets[0])
+	for _, v := range tmpStrings {
+		if v != "" {
+			n := getString(names, nameOffsets[0])
+			ti.stringCaps[n] = v
+		}
 		nameOffsets = nameOffsets[1:]
 	}
 

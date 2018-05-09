@@ -17,23 +17,12 @@ func TestRead(t *testing.T) {
 		t.Errorf("%v\n", err)
 	}
 
-	if len(ti.Names) != 2 {
-		t.Errorf("Expected 2 names, got %d\n", len(ti.Names))
+	names := ti.Names()
+	if len(names) != 2 {
+		t.Errorf("Expected 2 names, got %d\n", len(names))
 	}
 
-	if ti.Names[0] != "xterm-256color" || ti.Names[1] != "xterm with 256 colors" {
+	if names[0] != "xterm-256color" || names[1] != "xterm with 256 colors" {
 		t.Errorf("Name mismatch\n")
-	}
-}
-
-func TestConstants(t *testing.T) {
-	if BoolLPIChangesRes != 36 {
-		t.Error("Boolean constant mismatch")
-	}
-	if NumBitImageType != 32 {
-		t.Error("Number constant mismatch")
-	}
-	if StrSetPglenInch != 393 {
-		t.Error("String constant mismatch")
 	}
 }
