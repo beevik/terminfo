@@ -47,6 +47,7 @@ func runTestCase(t *testing.T, c *testCase) {
 	names := ti.Names()
 	if len(names) != len(c.names) {
 		t.Errorf("%s: expected %d names, got %d.\n", c.filename, len(c.names), len(names))
+		return
 	}
 
 	for i := 0; i < len(names); i++ {
@@ -87,4 +88,43 @@ func TestRead(t *testing.T) {
 	for i := range testCases {
 		runTestCase(t, &testCases[i])
 	}
+}
+
+func TestOutput(t *testing.T) {
+	file, err := os.Open("./_data/xterm-256color")
+	if err != nil {
+		t.Fatalf("%v\n", err)
+	}
+	defer file.Close()
+
+	ti, err := Read(file)
+	if err != nil {
+		t.Fatalf("%v\n", err)
+	}
+
+	t.Logf("Boolean capabilities:\n")
+	for k, v := range ti.boolCaps {
+		t.Logf("  %-8s: %v\n", k, v)
+	}
+
+	t.Logf("Numeric capabilities:\n")
+	for k, v := range ti.numCaps {
+		t.Logf("  %-8s: %v\n", k, v)
+	}
+
+	t.Logf("String capabilities:\n")
+	for k, v := range ti.strCaps {
+		t.Logf("  %-8s: %v\n", k, toHexCode(v))
+	}
+}
+
+var hexchar = "0123456789abcdef"
+
+func toHexCode(s string) string {
+	b := make([]byte, 0, 8)
+	for i := 0; i < len(s); i++ {
+		b = append(b, hexchar[(s[i]>>4)&0x0f])
+		b = append(b, hexchar[s[i]&0x0f])
+	}
+	return string(b)
 }
