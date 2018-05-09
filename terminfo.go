@@ -7,16 +7,16 @@ import (
 	"strings"
 )
 
-// TermInfo contains all data describing a compiled terminfo entry.
+// A TermInfo struct describes the capabilities of a terminal.
 type TermInfo struct {
-	names      []string
-	boolCaps   map[string]bool
-	numCaps    map[string]int
-	stringCaps map[string]string
-	numSize    int
+	names    []string
+	boolCaps map[string]bool
+	numCaps  map[string]int
+	strCaps  map[string]string
+	numSize  int
 }
 
-// Names returns a slice containing all the names of the TermInfo.
+// Names returns a slice containing all names assigned to the TermInfo.
 func (ti *TermInfo) Names() []string {
 	return ti.names
 }
@@ -25,21 +25,21 @@ func (ti *TermInfo) Names() []string {
 // variable name of the capability.
 func (ti *TermInfo) GetBoolCap(name string) (v, ok bool) {
 	v, ok = ti.boolCaps[name]
-	return v, ok
+	return
 }
 
 // GetNumberCap returns the value of a named numeric capabilitty. You should
 // pass the short name of the capability.
 func (ti *TermInfo) GetNumberCap(name string) (v int, ok bool) {
 	v, ok = ti.numCaps[name]
-	return v, ok
+	return
 }
 
 // GetStringCap returns the value of a named string capability. You should
 // pass the short name of the capability.
 func (ti *TermInfo) GetStringCap(name string) (v string, ok bool) {
-	v, ok = ti.stringCaps[name]
-	return v, ok
+	v, ok = ti.strCaps[name]
+	return
 }
 
 const (
@@ -141,12 +141,12 @@ func Read(r io.Reader) (*TermInfo, error) {
 	}
 
 	strings := string(strBytes)
-	ti.stringCaps = make(map[string]string)
+	ti.strCaps = make(map[string]string)
 	for i, o := range strOffsets {
 		if o >= 0 && o < int(h.StrSize) {
 			n := strCapNames[i]
 			v := getString(strings, o)
-			ti.stringCaps[n] = v
+			ti.strCaps[n] = v
 		}
 	}
 
@@ -233,7 +233,7 @@ func Read(r io.Reader) (*TermInfo, error) {
 	for _, v := range tmpStrings {
 		if v != "" {
 			n := getString(names, nameOffsets[0])
-			ti.stringCaps[n] = v
+			ti.strCaps[n] = v
 		}
 		nameOffsets = nameOffsets[1:]
 	}
